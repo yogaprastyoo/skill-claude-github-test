@@ -1,14 +1,15 @@
-import api from '@/lib/axios'
-import type { ApiResponse, AuthPayload, LoginInput, RegisterInput, User } from '@/types/api'
+import api, { getCsrfCookie } from '@/lib/axios'
+import type { ApiResponse, LoginInput, RegisterInput, User } from '@/types/api'
 
 export const authService = {
-  login: async (data: LoginInput): Promise<AuthPayload> => {
-    const res = await api.post<ApiResponse<AuthPayload>>('/auth/login', data)
-    return res.data.data
+  login: async (data: LoginInput): Promise<void> => {
+    await getCsrfCookie()
+    await api.post<ApiResponse<null>>('/auth/login', data)
   },
 
-  register: async (data: RegisterInput): Promise<AuthPayload> => {
-    const res = await api.post<ApiResponse<AuthPayload>>('/auth/register', data)
+  register: async (data: RegisterInput): Promise<User> => {
+    await getCsrfCookie()
+    const res = await api.post<ApiResponse<User>>('/auth/register', data)
     return res.data.data
   },
 

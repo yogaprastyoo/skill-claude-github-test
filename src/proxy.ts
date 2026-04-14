@@ -7,16 +7,13 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const isPublic = publicRoutes.some((route) => pathname.startsWith(route))
+  const isAuthenticated = request.cookies.get('is_authenticated')?.value === '1'
 
-  // Auth state is stored in Zustand (localStorage) — checked client-side.
-  // Middleware uses a lightweight cookie set after login for SSR-safe redirects.
-  const token = request.cookies.get('auth_token')?.value
-
-  if (!token && !isPublic) {
+  if (!isAuthenticated && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (token && isPublic) {
+  if (isAuthenticated && isPublic) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

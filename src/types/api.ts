@@ -12,11 +12,6 @@ export interface User {
   updated_at: string
 }
 
-export interface AuthPayload {
-  user: User
-  token: string
-}
-
 export interface LoginInput {
   email: string
   password: string
