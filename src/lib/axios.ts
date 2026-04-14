@@ -15,7 +15,10 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isPublicRoute = ['/login', '/register'].some((route) =>
+      window.location.pathname.startsWith(route)
+    )
+    if (error.response?.status === 401 && !isPublicRoute) {
       window.location.href = '/login'
     }
     return Promise.reject(error)
