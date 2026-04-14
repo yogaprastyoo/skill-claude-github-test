@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { isAxiosError } from 'axios'
 import { useRegister } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -15,9 +16,9 @@ export default function RegisterPage() {
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
   const { mutate: register, isPending, error } = useRegister()
 
-  const errorMessage =
-    // @ts-expect-error axios error shape
-    error?.response?.data?.message ?? (error ? 'Something went wrong.' : null)
+  const errorMessage = isAxiosError<{ message?: string }>(error)
+    ? (error.response?.data?.message ?? 'Something went wrong.')
+    : null
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

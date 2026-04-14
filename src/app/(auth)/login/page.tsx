@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { isAxiosError } from 'axios'
 import { useLogin } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,9 +14,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const { mutate: login, isPending, error } = useLogin()
 
-  const errorMessage =
-    // @ts-expect-error axios error shape
-    error?.response?.data?.message ?? (error ? 'Something went wrong.' : null)
+  const errorMessage = isAxiosError<{ message?: string }>(error)
+    ? (error.response?.data?.message ?? 'Something went wrong.')
+    : null
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

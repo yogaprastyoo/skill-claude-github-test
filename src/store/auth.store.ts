@@ -16,7 +16,9 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       setUser: (user) => {
-        document.cookie = 'is_authenticated=1; path=/; SameSite=Lax'
+        const secure = process.env.NODE_ENV === 'production' ? '; Secure' : ''
+        // max-age matches backend SESSION_LIFETIME (120 minutes)
+        document.cookie = `is_authenticated=1; path=/; SameSite=Lax; max-age=7200${secure}`
         set({ user, isAuthenticated: true })
       },
 
