@@ -10,6 +10,22 @@ import {
   uniqueSetCookies,
 } from '@/lib/csrf'
 
+function extractMaxAge(setCookies: string[], cookieName: string): number | undefined {
+  for (const cookie of setCookies) {
+    const [nameValue, ...parts] = cookie.split(';')
+    if (nameValue.trim().startsWith(`${cookieName}=`)) {
+      for (const part of parts) {
+        const [key, value] = part.trim().split('=')
+        if (key.toLowerCase() === 'max-age' && value) {
+          const parsed = parseInt(value, 10)
+          if (!isNaN(parsed)) return parsed
+        }
+      }
+    }
+  }
+  return undefined
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -60,10 +76,11 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json(userData)
 
     // 4. Set app_session so proxy can detect authenticated state
+    const sessionMaxAge = extractMaxAge([...csrfSetCookies, ...authSetCookies], 'laravel_session') ?? 7200
     response.cookies.set('app_session', '1', {
       httpOnly: true,
       path: '/',
-      maxAge: 7200,
+      maxAge: sessionMaxAge,
       sameSite: 'lax',
       secure: request.nextUrl.protocol === 'https:',
     })

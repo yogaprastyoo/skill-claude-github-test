@@ -3,7 +3,7 @@ import type { User } from '@/types/api'
 
 interface AuthState {
   user: User | null
-  isAuthenticated: boolean
+  isAuthenticated: null | boolean
   setUser: (user: User) => void
   clearAuth: () => void
 }
@@ -11,7 +11,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   (set) => ({
     user: null,
-    isAuthenticated: false,
+    isAuthenticated: null,
 
     setUser: (user) => {
       set({ user, isAuthenticated: true })

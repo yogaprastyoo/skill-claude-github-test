@@ -1,23 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BACKEND_URL } from '@/lib/backend'
-import {
-  createStatefulRequestHeaders,
-  fetchCsrfTokens,
-  getSetCookies,
-} from '@/lib/csrf'
+import { createStatefulRequestHeaders, getSetCookies } from '@/lib/csrf'
+
+function extractXsrfToken(cookieHeader: string): string {
+  for (const cookie of cookieHeader.split(';')) {
+    const [name, value] = cookie.trim().split('=')
+    if (name === 'XSRF-TOKEN' && value) {
+      return decodeURIComponent(value)
+    }
+  }
+  return ''
+}
 
 export async function POST(request: NextRequest) {
   try {
     const origin = request.nextUrl.origin
     const statefulHeaders = createStatefulRequestHeaders(origin)
 
-    const { cookieHeader: csrfCookies, xsrfToken } = await fetchCsrfTokens(origin)
+    const userCookies = request.headers.get('cookie') ?? ''
+    const xsrfToken = extractXsrfToken(userCookies)
 
     const laravelRes = await fetch(`${BACKEND_URL}/api/auth/logout`, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
-        Cookie: csrfCookies || (request.headers.get('cookie') ?? ''),
+        Cookie: userCookies,
         'X-XSRF-TOKEN': xsrfToken,
         ...statefulHeaders,
       },
