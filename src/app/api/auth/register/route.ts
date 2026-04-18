@@ -16,8 +16,10 @@ export async function POST(request: NextRequest) {
     const origin = request.nextUrl.origin
     const statefulHeaders = createStatefulRequestHeaders(origin)
 
+    // 1. Get CSRF tokens from Laravel
     const { cookieHeader: csrfCookies, setCookies: csrfSetCookies, xsrfToken } = await fetchCsrfTokens(origin)
 
+    // 2. Register — forward CSRF cookies + X-XSRF-TOKEN header
     const laravelRes = await fetch(`${BACKEND_URL}/api/auth/register`, {
       method: 'POST',
       headers: {
@@ -37,6 +39,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data ?? { message: 'Registration failed' }, { status: laravelRes.status })
     }
 
+    // 3. Fetch user
     const authSetCookies = getSetCookies(laravelRes)
     const authCookies = createCookieHeaderFromSetCookies(authSetCookies)
     const sessionCookies = createCookieHeader(csrfCookies, authCookies)
@@ -58,6 +61,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json(userData)
 
+    // 4. Set app_session optimistic marker
     response.cookies.set('app_session', '1', {
       httpOnly: true,
       path: '/',
@@ -66,6 +70,7 @@ export async function POST(request: NextRequest) {
       secure: request.nextUrl.protocol === 'https:',
     })
 
+    // 5. Forward Laravel session cookies to the browser
     for (const cookie of uniqueSetCookies([...csrfSetCookies, ...authSetCookies])) {
       response.headers.append('Set-Cookie', cookie)
     }

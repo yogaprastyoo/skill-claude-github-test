@@ -7,6 +7,9 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const isPublic = publicRoutes.some((route) => pathname.startsWith(route))
+  
+  // app_session is an optimistic marker for client-side routing/redirects.
+  // The actual session validation happens at /api/auth/me which checks the HttpOnly laravel_session.
   const isAuthenticated = request.cookies.get('app_session')?.value === '1'
 
   if (!isAuthenticated && !isPublic) {
