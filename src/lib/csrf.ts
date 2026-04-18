@@ -52,7 +52,7 @@ export function createCookieHeader(...cookieSources: string[]): string {
       continue
     }
 
-    for (const cookie of source.split('; ')) {
+    for (const cookie of source.split(/;\s*/)) {
       const [name] = cookie.split('=')
 
       if (name) {
