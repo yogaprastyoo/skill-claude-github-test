@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { BACKEND_URL } from '@/lib/backend'
+import { BACKEND_URL, BACKEND_TIMEOUT_MS } from '@/lib/backend'
 import { createStatefulRequestHeaders, getSetCookies } from '@/lib/csrf'
 
 function extractXsrfToken(cookieHeader: string): string {
@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
         'X-XSRF-TOKEN': xsrfToken,
         ...statefulHeaders,
       },
+      signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
     })
 
     const response = NextResponse.json({ message: 'Logged out' }, { status: 200 })
@@ -48,6 +49,9 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return NextResponse.json({ message: 'Backend timeout' }, { status: 504 })
+    }
     console.error('Logout BFF error:', error)
 
     // Even on error, clear app_session so the user can navigate away

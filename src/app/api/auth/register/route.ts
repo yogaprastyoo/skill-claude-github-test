@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { BACKEND_URL } from '@/lib/backend'
+import { BACKEND_URL, BACKEND_TIMEOUT_MS } from '@/lib/backend'
 import {
   createCookieHeader,
   createCookieHeaderFromSetCookies,
@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
         ...statefulHeaders,
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
     })
 
     const data = await readJsonOrNull(laravelRes)
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
         Cookie: sessionCookies,
         ...statefulHeaders,
       },
+      signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
     })
 
     const userData = await readJsonOrNull(userRes)
@@ -70,6 +72,9 @@ export async function POST(request: NextRequest) {
 
     return response
   } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return NextResponse.json({ message: 'Backend timeout' }, { status: 504 })
+    }
     console.error('Register BFF error:', error)
 
     return NextResponse.json({ message: 'Unable to register' }, { status: 500 })

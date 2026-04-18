@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { BACKEND_URL } from '@/lib/backend'
+import { BACKEND_URL, BACKEND_TIMEOUT_MS } from '@/lib/backend'
 import {
   createCookieHeader,
   createCookieHeaderFromSetCookies,
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const origin = request.nextUrl.origin
     const statefulHeaders = createStatefulRequestHeaders(origin)
 
-    // 1. Get CSRF tokens from Laravel (credentials: 'include' is browser-only — must manage cookies manually)
+    // 1. Get CSRF tokens from Laravel
     const { cookieHeader: csrfCookies, setCookies: csrfSetCookies, xsrfToken } = await fetchCsrfTokens(origin)
 
     // 2. Login — forward CSRF cookies + X-XSRF-TOKEN header
@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
         ...statefulHeaders,
       },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
     })
 
     const data = await readJsonOrNull(laravelRes)
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data ?? { message: 'Authentication failed' }, { status: laravelRes.status })
     }
 
-    // 3. Fetch user using the CSRF session cookies plus any cookies refreshed by login.
+    // 3. Fetch user
     const authSetCookies = getSetCookies(laravelRes)
     const authCookies = createCookieHeaderFromSetCookies(authSetCookies)
     const sessionCookies = createCookieHeader(csrfCookies, authCookies)
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
         Cookie: sessionCookies,
         ...statefulHeaders,
       },
+      signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
     })
 
     const userData = await readJsonOrNull(userRes)
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json(userData)
 
-    // 4. Set app_session so proxy can detect authenticated state
+    // 4. Set app_session
     const sessionMaxAge = extractMaxAge([...csrfSetCookies, ...authSetCookies], 'laravel_session') ?? 7200
     response.cookies.set('app_session', '1', {
       httpOnly: true,
@@ -85,13 +87,16 @@ export async function POST(request: NextRequest) {
       secure: request.nextUrl.protocol === 'https:',
     })
 
-    // 5. Forward Laravel session cookies to browser after Next mutates Set-Cookie.
+    // 5. Forward Laravel session cookies
     for (const cookie of uniqueSetCookies([...csrfSetCookies, ...authSetCookies])) {
       response.headers.append('Set-Cookie', cookie)
     }
 
     return response
   } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return NextResponse.json({ message: 'Backend timeout' }, { status: 504 })
+    }
     console.error('Login BFF error:', error)
 
     return NextResponse.json({ message: 'Unable to login' }, { status: 500 })
