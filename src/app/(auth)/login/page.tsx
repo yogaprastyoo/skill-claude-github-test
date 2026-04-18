@@ -8,12 +8,17 @@ import { z } from 'zod'
 import { useLogin } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSeparator,
+} from '@/components/ui/field'
 
 const loginSchema = z.object({
-  email: z.string().email('Email tidak valid'),
-  password: z.string().min(8, 'Password minimal 8 karakter'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -27,10 +32,7 @@ export default function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
+    defaultValues: { email: '', password: '' },
   })
 
   const onSubmit = async (values: LoginFormValues) => {
@@ -57,59 +59,88 @@ export default function LoginPage() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle className="text-2xl">Sign in</CardTitle>
-        <CardDescription>Enter your credentials to access your workspace.</CardDescription>
-      </CardHeader>
+    <div className="w-full max-w-[380px] flex flex-col gap-8">
+      {/* Brand */}
+      <div className="flex flex-col gap-1">
+        <div className="w-8 h-8 rounded-lg bg-foreground mb-4" />
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Welcome back</h1>
+        <p className="text-sm text-muted-foreground">Sign in to your account to continue</p>
+      </div>
 
+      {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <CardContent className="space-y-4">
+        <FieldGroup>
           {errors.root && (
-            <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
+            <div className="text-sm text-destructive bg-destructive/8 border border-destructive/20 px-3 py-2.5 rounded-lg">
               {errors.root.message}
-            </p>
+            </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label htmlFor="email">Email</Label>
+          <Field data-invalid={Boolean(errors.email)}>
+            <FieldLabel htmlFor="email" className="text-sm font-medium">
+              Email
+            </FieldLabel>
             <Input
               id="email"
               type="email"
               placeholder="you@example.com"
               autoComplete="email"
               aria-invalid={Boolean(errors.email)}
+              className="h-10 text-sm"
               {...register('email')}
             />
-            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
-          </div>
+            <FieldError errors={[errors.email]} />
+          </Field>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="password">Password</Label>
+          <Field data-invalid={Boolean(errors.password)}>
+            <div className="flex items-center justify-between">
+              <FieldLabel htmlFor="password" className="text-sm font-medium">
+                Password
+              </FieldLabel>
+              <a
+                href="#"
+                className="text-xs text-muted-foreground underline-offset-4 hover:underline hover:text-foreground transition-colors"
+              >
+                Forgot password?
+              </a>
+            </div>
             <Input
               id="password"
               type="password"
               placeholder="••••••••"
               autoComplete="current-password"
               aria-invalid={Boolean(errors.password)}
+              className="h-10 text-sm"
               {...register('password')}
             />
-            {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
-          </div>
-        </CardContent>
+            <FieldError errors={[errors.password]} />
+          </Field>
 
-        <CardFooter className="flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={isSubmitting || isPending}>
-            {isSubmitting || isPending ? 'Signing in...' : 'Sign in'}
-          </Button>
-          <p className="text-sm text-muted-foreground text-center">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-primary underline-offset-4 hover:underline">
-              Register
-            </Link>
-          </p>
-        </CardFooter>
+          <Field className="mt-1">
+            <Button
+              type="submit"
+              className="w-full h-10 text-sm font-medium"
+              disabled={isSubmitting || isPending}
+            >
+              {isSubmitting || isPending ? 'Signing in...' : 'Sign in'}
+            </Button>
+          </Field>
+        </FieldGroup>
       </form>
-    </Card>
+
+      {/* Footer */}
+      <div className="flex flex-col gap-4">
+        <FieldSeparator>or</FieldSeparator>
+        <p className="text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{' '}
+          <Link
+            href="/register"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            Create one
+          </Link>
+        </p>
+      </div>
+    </div>
   )
 }
