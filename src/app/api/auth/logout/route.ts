@@ -1,31 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BACKEND_URL } from '@/lib/backend'
+import {
+  createStatefulRequestHeaders,
+  fetchCsrfTokens,
+  getSetCookies,
+} from '@/lib/csrf'
 
 export async function POST(request: NextRequest) {
-  const laravelRes = await fetch(`${BACKEND_URL}/api/auth/logout`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      Accept: 'application/json',
-      Cookie: request.headers.get('cookie') ?? '',
-    },
-  })
+  try {
+    const origin = request.nextUrl.origin
+    const statefulHeaders = createStatefulRequestHeaders(origin)
 
-  const response = NextResponse.json({ message: 'Logged out' }, { status: 200 })
+    const { cookieHeader: csrfCookies, xsrfToken } = await fetchCsrfTokens(origin)
 
-  // Clear Laravel session cookies
-  const setCookies = laravelRes.headers.getSetCookie?.() ?? []
-  setCookies.forEach((cookie) => {
-    response.headers.append('Set-Cookie', cookie)
-  })
+    const laravelRes = await fetch(`${BACKEND_URL}/api/auth/logout`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        Cookie: csrfCookies || (request.headers.get('cookie') ?? ''),
+        'X-XSRF-TOKEN': xsrfToken,
+        ...statefulHeaders,
+      },
+    })
 
-  // Clear the app_session cookie used by proxy
-  response.cookies.set('app_session', '', {
-    httpOnly: true,
-    path: '/',
-    expires: new Date(0),
-    sameSite: 'lax',
-  })
+    const response = NextResponse.json({ message: 'Logged out' }, { status: 200 })
 
-  return response
+    // Forward any cookies Laravel invalidates (session deletion, etc.)
+    for (const cookie of getSetCookies(laravelRes)) {
+      response.headers.append('Set-Cookie', cookie)
+    }
+
+    // Always clear app_session regardless of Laravel response
+    response.cookies.set('app_session', '', {
+      httpOnly: true,
+      path: '/',
+      expires: new Date(0),
+      sameSite: 'lax',
+      secure: request.nextUrl.protocol === 'https:',
+    })
+
+    return response
+  } catch (error) {
+    console.error('Logout BFF error:', error)
+
+    // Even on error, clear app_session so the user can navigate away
+    const response = NextResponse.json({ message: 'Logged out' }, { status: 200 })
+    response.cookies.set('app_session', '', {
+      httpOnly: true,
+      path: '/',
+      expires: new Date(0),
+      sameSite: 'lax',
+      secure: request.nextUrl.protocol === 'https:',
+    })
+
+    return response
+  }
 }
