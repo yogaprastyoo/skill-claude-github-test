@@ -7,7 +7,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const isPublic = publicRoutes.some((route) => pathname.startsWith(route))
-  const isAuthenticated = request.cookies.get('is_authenticated')?.value === '1'
+  const isAuthenticated = request.cookies.get('app_session')?.value === '1'
 
   if (!isAuthenticated && !isPublic) {
     return NextResponse.redirect(new URL('/login', request.url))

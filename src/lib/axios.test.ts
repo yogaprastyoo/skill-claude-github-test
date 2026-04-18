@@ -3,11 +3,11 @@ import api from './axios'
 
 describe('axios instance', () => {
   it('has correct baseURL', () => {
-    expect(api.defaults.baseURL).toBe('http://localhost:8000/api')
+    expect(api.defaults.baseURL).toBe('/api')
   })
 
-  it('has withCredentials enabled', () => {
-    expect(api.defaults.withCredentials).toBe(true)
+  it('does not set withCredentials (same-origin BFF)', () => {
+    expect(api.defaults.withCredentials).toBeFalsy()
   })
 
   it('has correct default headers', () => {
