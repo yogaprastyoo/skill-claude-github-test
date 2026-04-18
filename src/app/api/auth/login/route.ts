@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json(userData)
 
-    // 4. Set app_session
+    // 4. Set app_session optimistic marker
     const sessionMaxAge = extractMaxAge([...csrfSetCookies, ...authSetCookies], 'laravel_session') ?? 7200
     response.cookies.set('app_session', '1', {
       httpOnly: true,
