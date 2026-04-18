@@ -1,28 +1,56 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
 import { isAxiosError } from 'axios'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 import { useRegister } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
+const registerSchema = z
+  .object({
+    name: z.string().min(1, 'Name wajib diisi'),
+    email: z.string().email('Email tidak valid'),
+    password: z.string().min(8, 'Password minimal 8 karakter'),
+    password_confirmation: z.string().min(1, 'Konfirmasi password wajib diisi'),
+  })
+  .refine((values) => values.password === values.password_confirmation, {
+    message: 'Konfirmasi password tidak sama',
+    path: ['password_confirmation'],
+  })
+
+type RegisterFormValues = z.infer<typeof registerSchema>
+
 export default function RegisterPage() {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [passwordConfirmation, setPasswordConfirmation] = useState('')
-  const { mutate: register, isPending, error } = useRegister()
+  const { mutateAsync: registerUser, isPending, error } = useRegister()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      password_confirmation: '',
+    },
+  })
 
   const errorMessage = isAxiosError<{ message?: string }>(error)
     ? (error.response?.data?.message ?? 'Something went wrong.')
     : null
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    register({ name, email, password, password_confirmation: passwordConfirmation })
+  const onSubmit = async (values: RegisterFormValues) => {
+    try {
+      await registerUser(values)
+    } catch {
+      // The mutation error is displayed from React Query state above.
+    }
   }
 
   return (
@@ -32,7 +60,7 @@ export default function RegisterPage() {
         <CardDescription>Fill in the details below to get started.</CardDescription>
       </CardHeader>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <CardContent className="space-y-4">
           {errorMessage && (
             <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
@@ -46,11 +74,11 @@ export default function RegisterPage() {
               id="name"
               type="text"
               placeholder="John Doe"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
               autoComplete="name"
+              aria-invalid={Boolean(errors.name)}
+              {...register('name')}
             />
+            {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -59,11 +87,11 @@ export default function RegisterPage() {
               id="email"
               type="email"
               placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
               autoComplete="email"
+              aria-invalid={Boolean(errors.email)}
+              {...register('email')}
             />
+            {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -72,11 +100,11 @@ export default function RegisterPage() {
               id="password"
               type="password"
               placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
               autoComplete="new-password"
+              aria-invalid={Boolean(errors.password)}
+              {...register('password')}
             />
+            {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -85,17 +113,19 @@ export default function RegisterPage() {
               id="password-confirmation"
               type="password"
               placeholder="••••••••"
-              value={passwordConfirmation}
-              onChange={(e) => setPasswordConfirmation(e.target.value)}
-              required
               autoComplete="new-password"
+              aria-invalid={Boolean(errors.password_confirmation)}
+              {...register('password_confirmation')}
             />
+            {errors.password_confirmation && (
+              <p className="text-sm text-destructive">{errors.password_confirmation.message}</p>
+            )}
           </div>
         </CardContent>
 
         <CardFooter className="flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={isPending}>
-            {isPending ? 'Creating account...' : 'Create account'}
+          <Button type="submit" className="w-full" disabled={isSubmitting || isPending}>
+            {isSubmitting || isPending ? 'Creating account...' : 'Create account'}
           </Button>
           <p className="text-sm text-muted-foreground text-center">
             Already have an account?{' '}
