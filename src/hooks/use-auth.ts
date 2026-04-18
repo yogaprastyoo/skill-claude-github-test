@@ -1,0 +1,81 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
+import { authService } from '@/services/auth.service'
+import { useAuthStore } from '@/store/auth.store'
+import type { LoginInput, RegisterInput, User } from '@/types/api'
+
+export function useLogin() {
+  const { setUser } = useAuthStore()
+  const queryClient = useQueryClient()
+  const router = useRouter()
+
+  return useMutation({
+    mutationFn: (data: LoginInput) => authService.login(data),
+    onSuccess: (user) => {
+      setUser(user)
+      queryClient.setQueryData(['user'], user)
+      router.push('/dashboard')
+    },
+  })
+}
+
+export function useRegister() {
+  const { setUser } = useAuthStore()
+  const queryClient = useQueryClient()
+  const router = useRouter()
+
+  return useMutation({
+    mutationFn: (data: RegisterInput) => authService.register(data),
+    onSuccess: (user) => {
+      setUser(user)
+      queryClient.setQueryData(['user'], user)
+      router.push('/dashboard')
+    },
+  })
+}
+
+export function useLogout() {
+  const { clearAuth } = useAuthStore()
+  const queryClient = useQueryClient()
+  const router = useRouter()
+
+  return useMutation({
+    mutationFn: () => authService.logout(),
+    onSuccess: () => {
+      clearAuth()
+      queryClient.clear()
+      router.push('/login')
+    },
+    onError: () => {
+      clearAuth()
+      queryClient.clear()
+      router.push('/login')
+    },
+  })
+}
+
+export function useUser() {
+  const { clearAuth, setUser, isAuthenticated } = useAuthStore()
+
+  const query = useQuery<User>({
+    queryKey: ['user'],
+    queryFn: () => authService.me(),
+    enabled: isAuthenticated !== false,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+
+  useEffect(() => {
+    if (query.status === 'success') {
+      setUser(query.data)
+    } else if (query.status === 'error') {
+      clearAuth()
+    }
+  }, [query.status, query.data, setUser, clearAuth])
+
+  return query
+}
