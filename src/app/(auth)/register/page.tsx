@@ -26,10 +26,11 @@ const registerSchema = z
 type RegisterFormValues = z.infer<typeof registerSchema>
 
 export default function RegisterPage() {
-  const { mutateAsync: registerUser, isPending, error } = useRegister()
+  const { mutateAsync: registerUser, isPending } = useRegister()
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -41,15 +42,26 @@ export default function RegisterPage() {
     },
   })
 
-  const errorMessage = isAxiosError<{ message?: string }>(error)
-    ? (error.response?.data?.message ?? 'Something went wrong.')
-    : null
-
   const onSubmit = async (values: RegisterFormValues) => {
     try {
       await registerUser(values)
-    } catch {
-      // The mutation error is displayed from React Query state above.
+    } catch (err) {
+      if (isAxiosError<{ message?: string; errors?: Record<string, string[]> }>(err)) {
+        const fieldErrors = err.response?.data?.errors
+        if (fieldErrors) {
+          for (const [field, messages] of Object.entries(fieldErrors)) {
+            if (field in values) {
+              setError(field as keyof RegisterFormValues, { message: messages[0] })
+            }
+          }
+          return
+        }
+      }
+      setError('root', {
+        message: isAxiosError<{ message?: string }>(err)
+          ? (err.response?.data?.message ?? 'Something went wrong.')
+          : 'Something went wrong.',
+      })
     }
   }
 
@@ -62,9 +74,9 @@ export default function RegisterPage() {
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <CardContent className="space-y-4">
-          {errorMessage && (
+          {errors.root && (
             <p className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
-              {errorMessage}
+              {errors.root.message}
             </p>
           )}
 

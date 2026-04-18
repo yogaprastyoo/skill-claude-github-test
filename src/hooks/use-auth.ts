@@ -58,11 +58,12 @@ export function useLogout() {
 }
 
 export function useUser() {
-  const { clearAuth, setUser } = useAuthStore()
+  const { clearAuth, setUser, isAuthenticated } = useAuthStore()
 
   const query = useQuery<User>({
     queryKey: ['user'],
     queryFn: () => authService.me(),
+    enabled: isAuthenticated !== false,
     retry: false,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
