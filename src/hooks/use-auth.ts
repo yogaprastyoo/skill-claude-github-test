@@ -1,10 +1,11 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { authService } from '@/services/auth.service'
 import { useAuthStore } from '@/store/auth.store'
-import type { LoginInput, RegisterInput } from '@/types/api'
+import type { LoginInput, RegisterInput, User } from '@/types/api'
 
 export function useLogin() {
   const { setUser } = useAuthStore()
@@ -57,12 +58,27 @@ export function useLogout() {
 }
 
 export function useUser() {
-  const { isAuthenticated } = useAuthStore()
+  const { clearAuth, setUser } = useAuthStore()
 
-  return useQuery({
+  const query = useQuery<User>({
     queryKey: ['user'],
     queryFn: () => authService.me(),
-    enabled: isAuthenticated,
+    retry: false,
     staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
+
+  useEffect(() => {
+    if (query.data) {
+      setUser(query.data)
+    }
+  }, [query.data, setUser])
+
+  useEffect(() => {
+    if (query.isError) {
+      clearAuth()
+    }
+  }, [clearAuth, query.isError])
+
+  return query
 }

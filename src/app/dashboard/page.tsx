@@ -4,8 +4,28 @@ import { useLogout, useUser } from '@/hooks/use-auth'
 import { Button } from '@/components/ui/button'
 
 export default function DashboardPage() {
-  const { data: user } = useUser()
+  const { data: user, isError, isLoading } = useUser()
   const { mutate: logout, isPending } = useLogout()
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen p-8">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-muted-foreground">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen p-8">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-muted-foreground">Redirecting to sign in...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen p-8">
