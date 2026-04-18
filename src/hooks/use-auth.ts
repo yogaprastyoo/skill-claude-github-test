@@ -13,8 +13,7 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: (data: LoginInput) => authService.login(data),
-    onSuccess: async () => {
-      const user = await authService.me()
+    onSuccess: (user) => {
       setUser(user)
       queryClient.setQueryData(['user'], user)
       router.push('/dashboard')

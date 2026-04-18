@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { useAuthStore } from './auth.store'
 
 const mockUser = {
@@ -11,9 +11,6 @@ const mockUser = {
 
 beforeEach(() => {
   useAuthStore.setState({ user: null, isAuthenticated: false })
-  vi.stubGlobal('document', {
-    cookie: '',
-  })
 })
 
 describe('auth store — setUser', () => {

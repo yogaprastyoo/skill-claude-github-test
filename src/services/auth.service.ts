@@ -1,14 +1,13 @@
-import api, { getCsrfCookie } from '@/lib/axios'
+import api from '@/lib/axios'
 import type { ApiResponse, LoginInput, RegisterInput, User } from '@/types/api'
 
 export const authService = {
-  login: async (data: LoginInput): Promise<void> => {
-    await getCsrfCookie()
-    await api.post<ApiResponse<null>>('/auth/login', data)
+  login: async (data: LoginInput): Promise<User> => {
+    const res = await api.post<ApiResponse<User>>('/auth/login', data)
+    return res.data.data
   },
 
   register: async (data: RegisterInput): Promise<User> => {
-    await getCsrfCookie()
     const res = await api.post<ApiResponse<User>>('/auth/register', data)
     return res.data.data
   },
@@ -18,7 +17,7 @@ export const authService = {
   },
 
   me: async (): Promise<User> => {
-    const res = await api.get<ApiResponse<User>>('/user')
+    const res = await api.get<ApiResponse<User>>('/auth/me')
     return res.data.data
   },
 }
