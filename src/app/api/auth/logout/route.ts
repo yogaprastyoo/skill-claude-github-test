@@ -33,11 +33,6 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json({ message: 'Logged out' }, { status: 200 })
 
-    // Forward any cookies Laravel invalidates (session deletion, etc.)
-    for (const cookie of getSetCookies(laravelRes)) {
-      response.headers.append('Set-Cookie', cookie)
-    }
-
     // Always clear app_session regardless of Laravel response
     response.cookies.set('app_session', '', {
       httpOnly: true,
@@ -46,6 +41,11 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax',
       secure: request.nextUrl.protocol === 'https:',
     })
+
+    // Forward any cookies Laravel invalidates (session deletion, etc.)
+    for (const cookie of getSetCookies(laravelRes)) {
+      response.headers.append('Set-Cookie', cookie)
+    }
 
     return response
   } catch (error) {
