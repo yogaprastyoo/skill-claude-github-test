@@ -70,16 +70,12 @@ export function useUser() {
   })
 
   useEffect(() => {
-    if (query.data) {
+    if (query.status === 'success') {
       setUser(query.data)
-    }
-  }, [query.data, setUser])
-
-  useEffect(() => {
-    if (query.isError) {
+    } else if (query.status === 'error') {
       clearAuth()
     }
-  }, [clearAuth, query.isError])
+  }, [query.status, query.data, setUser, clearAuth])
 
   return query
 }
