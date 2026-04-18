@@ -1,4 +1,4 @@
-import { BACKEND_URL } from './backend'
+import { BACKEND_URL, BACKEND_TIMEOUT_MS } from './backend'
 
 interface CsrfTokens {
   cookieHeader: string
@@ -19,6 +19,7 @@ export async function fetchCsrfTokens(origin: string): Promise<CsrfTokens> {
       Accept: 'application/json',
       ...createStatefulRequestHeaders(origin),
     },
+    signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
   })
 
   const cookies = res.headers.getSetCookie?.() ?? []
